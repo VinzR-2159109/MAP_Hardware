@@ -1,0 +1,97 @@
+#include <Arduino.h>
+#include "WiFiManager.h"
+#include "MQTTClient.h"
+#include "IR_KY032.h"
+#include "LED_Cluster.h"
+#include <ArduinoJson.h>
+
+// WiFi and MQTT Credentials
+const char* SSID = "Hotspot van Vinz";
+const char* PASSWORD = "Vinz1512.";
+const char* MQTT_SERVER = "0f158df0574242429e54c7458f9f4a37.s1.eu.hivemq.cloud";
+const int MQTT_PORT = 8883;
+const char* MQTT_USERNAME = "dwi_map";
+const char* MQTT_PASSWORD = "wRYx&RK%l5vsflnN";
+
+const uint8_t id = 1;
+
+bool lastObstacleState = false;
+
+void messageCallback(char* topic, byte* payload, unsigned int length);
+
+WiFiManager wifiManager(SSID, PASSWORD);
+MQTTClient mqttClient(MQTT_SERVER, MQTT_PORT, MQTT_USERNAME, MQTT_PASSWORD, messageCallback);
+IR_KY032 obstacleSensor(5, 6); // outPin=5, enPin=6
+LEDCluster ledCluster(7, 9);   // numLEDs=7, pin=9
+
+void messageCallback(char* topic, byte* payload, unsigned int length) {
+    Serial.print("📩 Received message on topic: ");
+    Serial.println(topic);
+
+    String message = "";
+    for (unsigned int i = 0; i < length; i++) {
+        message += (char)payload[i];
+    }
+    Serial.println("📜 Payload: " + message);
+
+    DynamicJsonDocument doc(256);
+    DeserializationError error = deserializeJson(doc, message);
+    if (error) {
+        Serial.println("❌ Failed to parse JSON");
+        return;
+    }
+
+    if (!doc["id"].is<int>() || doc["id"].as<int>() != id) {
+        Serial.println("⛔ Ignoring message: ID mismatch");
+        return;
+    }
+
+    ledCluster.processMQTTMessage(doc);
+}
+
+void setup() {
+    Serial.begin(115200);
+    while (!Serial) delay(1000);
+
+    // Connect to Wi-Fi (Blocking)
+    wifiManager.connectWiFi();
+
+    ledCluster.flashAll(0, 255, 0, 500, 2); // 2x Green
+
+    mqttClient.connect();
+    mqttClient.subscribeTopic("Output/Bin/LED");
+    ledCluster.flashAll(0, 255, 0, 500, 2); // 2x Green
+}
+
+
+void loop() {
+    mqttClient.loop(); // Remember when you forgot this and it took 3u to find out
+
+    if (wifiManager.getStatus() != WL_CONNECTED) {
+        ledCluster.flashAll(255, 0, 0, 500, 3); // 3xRed
+        Serial.println("❌ WiFi Disconnected!");
+        return;
+    }
+
+    if (!mqttClient.isConnected()){
+        ledCluster.flashAll(255, 0, 0, 500, 3); // 3xRed
+        Serial.println("❌ MQTT Disconnected!");
+        mqttClient.reconnect();
+        return;
+    }
+
+    bool obstacleDetected = obstacleSensor.isObstacleDetected();
+    if (obstacleDetected != lastObstacleState) {
+        lastObstacleState = obstacleDetected;
+
+        DynamicJsonDocument doc(128);
+        doc["id"] = id;
+        doc["obstacle"] = obstacleDetected;
+
+        char buffer[128];
+        serializeJson(doc, buffer);
+        mqttClient.publishMessage("Input/Bin/Obstacle", buffer);
+    }
+
+    delay(100); // Small delay to reduce CPU usage
+}
