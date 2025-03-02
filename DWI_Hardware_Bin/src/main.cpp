@@ -21,7 +21,7 @@ void messageCallback(char* topic, byte* payload, unsigned int length);
 
 WiFiManager wifiManager(SSID, PASSWORD);
 MQTTClient mqttClient(MQTT_SERVER, MQTT_PORT, MQTT_USERNAME, MQTT_PASSWORD, messageCallback);
-IR_KY032 obstacleSensor(5, 6); // outPin=5, enPin=6
+IR_KY032 obstacleSensor(11, 6); // outPin=11, enPin=6
 LEDCluster ledCluster(7, 9);   // numLEDs=7, pin=9
 
 void messageCallback(char* topic, byte* payload, unsigned int length) {

@@ -9,7 +9,7 @@ private:
     int enPin;
 
 public:
-    IR_KY032(int outPin=5, int enPin=6) {
+    IR_KY032(int outPin=11, int enPin=6) {
         this->outPin = outPin;
         this->enPin = enPin;
         pinMode(outPin, INPUT);
