@@ -37,6 +37,8 @@ uYkQ4omYCTX5ohy+knMjdOmdH9c7SpqEWBDC86fiNex+O0XOMEZSa8DA
 -----END CERTIFICATE-----
 )EOF";
 
+#define MQTT_MAX_PACKET_SIZE 512
+
 class MQTTClient {
 public:
     using CallbackFunction = void (*)(char*, byte*, unsigned int);

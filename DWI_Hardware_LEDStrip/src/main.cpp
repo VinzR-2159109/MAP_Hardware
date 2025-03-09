@@ -1,35 +1,87 @@
 #include <Arduino.h>
 #include <Adafruit_NeoPixel.h>
+#include <ArduinoJson.h>
+
 #include "WiFiManager.h"
 #include "MQTTClient.h"
-
-// Include the LEDStrip class
 #include "LEDStrip.h"
 
-#define LED_PIN 13     // The pin connected to the LED strip
-#define LED_COUNT 30    // Total number of LEDs in the strip
+// WiFi and MQTT Credentials
+const char* SSID = "Hotspot van Vinz";
+const char* PASSWORD = "Vinz1512.";
+const char* MQTT_SERVER = "0f158df0574242429e54c7458f9f4a37.s1.eu.hivemq.cloud";
+const int MQTT_PORT = 8883;
+const char* MQTT_USERNAME = "dwi_map";
+const char* MQTT_PASSWORD = "wRYx&RK%l5vsflnN";
 
-LEDStrip strip(LED_COUNT, LED_PIN);
+void messageCallback(char* topic, byte* payload, unsigned int length);
 
-void setup() {
-    strip.begin();
-    strip.clear();
+WiFiManager wifiManager(SSID, PASSWORD);
+MQTTClient mqttClient(MQTT_SERVER, MQTT_PORT, MQTT_USERNAME, MQTT_PASSWORD, messageCallback);
+LEDStrip ledStripX(60, 14);
+LEDStrip ledStripY(29, 12);
+
+void messageCallback(char* topic, byte* payload, unsigned int length) {
+    Serial.print("📩 Received message on topic: ");
+    Serial.println(topic);
+
+    String message = "";
+    for (unsigned int i = 0; i < length; i++) {
+        message += (char)payload[i];
+    }
+    Serial.println("📜 Payload: \n" + message);
+
+    JsonDocument doc;
+    DeserializationError error = deserializeJson(doc, message);
+    if (error) {
+        Serial.println("❌ Failed to parse JSON");
+        return;
+    }
+
+    if (!doc["id"].is<const char*>() || strcmp(doc["id"].as<const char*>(), "x") == 0) {
+        ledStripX.processMQTTMessage(doc);
+        return;
+    } 
+    
+    if (!doc["id"].is<const char*>() || strcmp(doc["id"].as<const char*>(), "y") == 0) {
+        ledStripY.processMQTTMessage(doc);
+        return;
+    }  
+
+    doc.clear();
 }
 
+void setup() {
+    Serial.begin(115200);
+    while (!Serial) delay(1000);
+    
+    wifiManager.connectWiFi();
+
+    ledStripY.flash(500, 2, 0, 255, 0); // 2xGreen
+
+    mqttClient.connect();
+    mqttClient.subscribeTopic("Output/LEDStrip");
+
+    ledStripY.flash(500, 2, 0, 255, 0); // 2xGreen
+}
+
+
+
 void loop() {
-    std::vector<uint16_t> redPixels = {2, 5, 8, 12}; // Specific red pixels
-    std::vector<uint16_t> greenPixels = {3, 6, 9, 15}; // Specific green pixels
-    std::vector<uint16_t> bluePixels = {1, 4, 7, 10}; // Specific blue pixels
-
-    strip.setRangeRed(redPixels);
-    delay(1000);
+    mqttClient.loop();
     
-    strip.setRangeGreen(greenPixels);
-    delay(1000);
+    if (wifiManager.getStatus() != WL_CONNECTED) {
+        ledStripY.flash(500, 2, 255, 0, 0); // 2xRed
+        Serial.println("❌ WiFi Disconnected!");
+        return;
+    }
 
-    strip.setRangeColor(bluePixels, 0, 0, 255); // Blue color for selected pixels
-    delay(1000);
-    
-    strip.clear(); // Turn off all LEDs
-    delay(1000);
+    if (!mqttClient.isConnected()){
+        ledStripY.flash(500, 2, 255, 0, 0); // 2xRed
+        Serial.println("❌ MQTT Disconnected!");
+        mqttClient.reconnect();
+        return;
+    }
+
+    delay(10);
 }
