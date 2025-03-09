@@ -1,8 +1,6 @@
 #ifndef MQTTCLIENT_H
 #define MQTTCLIENT_H
 
-#define MQTT_MAX_PACKET_SIZE 1024  // Increase to handle larger messages
-
 #include <WiFiClientSecure.h>
 #include <PubSubClient.h>
 #include <vector>
@@ -50,7 +48,6 @@ public:
         client.setCallback([this](char* topic, byte* payload, unsigned int length) {
             if (userCallback) userCallback(topic, payload, length);
         });
-        client.setBufferSize(1024);
     }
 
     bool connect(int maxRetries = 10) {
