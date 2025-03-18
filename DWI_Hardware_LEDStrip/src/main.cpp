@@ -71,7 +71,7 @@ void loop() {
     mqttClient.loop();
     
     if (wifiManager.getStatus() != WL_CONNECTED) {
-        ledStripY.flash(500, 2, 255, 0, 0); // 2xRed
+        ledStripY.flash(200, 2, 255, 0, 0); // 2xRed Fast
         Serial.println("❌ WiFi Disconnected!");
         return;
     }
