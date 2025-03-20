@@ -21,8 +21,12 @@ public:
     
         uint8_t brightness = doc["brightness"] | 255;
         strip.setBrightness(brightness);
+        
+        String effect = doc["effect"] | "";
     
-        if (doc.containsKey("effect") && strcmp(doc["effect"], "flash") == 0) {
+        Serial.printf("Received: R=%d, G=%d, B=%d, Brightness=%d, Effect=%s\n", red, green, blue, brightness, effect.c_str());
+    
+        if (effect == "flash") {
             uint16_t duration = doc["duration"] | 500;
             uint8_t cycles = doc["cycles"] | 3;
             Serial.println("🚥 Flashing LEDs");
@@ -31,6 +35,7 @@ public:
             setColorAll(red, green, blue);
         }
     }
+    
     
 
     void flash(uint8_t index, uint8_t red, uint8_t green, uint8_t blue, uint16_t duration, uint8_t cycles) {
