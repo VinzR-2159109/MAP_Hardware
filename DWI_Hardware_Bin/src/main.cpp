@@ -1,9 +1,11 @@
 #include <Arduino.h>
+#include <ArduinoJson.h>
+
 #include "WiFiManager.h"
 #include "MQTTClient.h"
 #include "IR_KY032.h"
 #include "LED_Cluster.h"
-#include <ArduinoJson.h>
+#include "SevenSegment_Display.h"
 
 // WiFi and MQTT Credentials
 const char* SSID = "Hotspot van Vinz";
@@ -13,7 +15,7 @@ const int MQTT_PORT = 8883;
 const char* MQTT_USERNAME = "dwi_map";
 const char* MQTT_PASSWORD = "wRYx&RK%l5vsflnN";
 
-const uint8_t id = 1;
+const uint8_t id = 2;
 
 bool lastObstacleState = false;
 
@@ -23,6 +25,7 @@ WiFiManager wifiManager(SSID, PASSWORD);
 MQTTClient mqttClient(MQTT_SERVER, MQTT_PORT, MQTT_USERNAME, MQTT_PASSWORD, messageCallback);
 IR_KY032 obstacleSensor(11, 6); // outPin=11, enPin=6
 LEDCluster ledCluster(7, 9);   // numLEDs=7, pin=9
+SevenSegmentDisplay display(13, 12); // clkPin=13, dioPin=12
 
 void messageCallback(char* topic, byte* payload, unsigned int length) {
     Serial.print("📩 Received message on topic: ");
@@ -46,7 +49,17 @@ void messageCallback(char* topic, byte* payload, unsigned int length) {
         return;
     }
 
-    ledCluster.processMQTTMessage(doc);
+    if (strcmp(topic, "Output/Bin/LED") == 0){
+        ledCluster.processMQTTMessage(doc);
+    } 
+
+    else if (strcmp(topic, "Output/Bin/Display") == 0){
+        display.processMQTTMessage(doc);
+    }
+
+    else {
+        Serial.println("⛔ Ignoring message: Unknown topic");
+    }
 }
 
 void setup() {
@@ -60,6 +73,7 @@ void setup() {
 
     mqttClient.connect();
     mqttClient.subscribeTopic("Output/Bin/LED");
+    mqttClient.subscribeTopic("Output/Bin/Display");
     ledCluster.flashAll(0, 255, 0, 500, 2); // 2x Green
 }
 
