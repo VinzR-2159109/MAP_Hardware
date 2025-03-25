@@ -15,7 +15,7 @@ const int MQTT_PORT = 8883;
 const char* MQTT_USERNAME = "dwi_map";
 const char* MQTT_PASSWORD = "wRYx&RK%l5vsflnN";
 
-const uint8_t id = 2;
+const uint8_t id = 1;
 
 bool lastObstacleState = false;
 
@@ -64,9 +64,8 @@ void messageCallback(char* topic, byte* payload, unsigned int length) {
 
 void setup() {
     Serial.begin(115200);
-    while (!Serial) delay(1000);
+    //while (!Serial) delay(1000);
 
-    // Connect to Wi-Fi (Blocking)
     wifiManager.connectWiFi();
 
     ledCluster.flashAll(0, 255, 0, 500, 2); // 2x Green
@@ -107,5 +106,5 @@ void loop() {
         mqttClient.publishMessage("Input/Bin/Obstacle", buffer);
     }
 
-    delay(100); // Small delay to reduce CPU usage
+    delay(100);
 }
