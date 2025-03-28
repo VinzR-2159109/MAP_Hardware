@@ -40,14 +40,19 @@ void messageCallback(char* topic, byte* payload, unsigned int length) {
 
     if (!doc["id"].is<const char*>() || strcmp(doc["id"].as<const char*>(), "x") == 0) {
         ledStripX.processMQTTMessage(doc);
+        
+        doc.clear();
         return;
     } 
     
     if (!doc["id"].is<const char*>() || strcmp(doc["id"].as<const char*>(), "y") == 0) {
         ledStripY.processMQTTMessage(doc);
+        
+        doc.clear();
         return;
     }  
 
+    Serial.println("❌ Invalid ID in JSON");
     doc.clear();
 }
 
@@ -57,12 +62,12 @@ void setup() {
     
     wifiManager.connectWiFi();
 
-    ledStripY.flash(500, 2, 0, 255, 0); // 2xGreen
+    ledStripY.flashAll(500, 2, 0, 255, 0); // 2xGreen
 
     mqttClient.connect();
     mqttClient.subscribeTopic("Output/LEDStrip");
 
-    ledStripY.flash(500, 2, 0, 255, 0); // 2xGreen
+    ledStripY.flashAll(500, 2, 0, 255, 0); // 2xGreen
 }
 
 
@@ -71,13 +76,13 @@ void loop() {
     mqttClient.loop();
     
     if (wifiManager.getStatus() != WL_CONNECTED) {
-        ledStripY.flash(200, 2, 255, 0, 0); // 2xRed Fast
+        ledStripY.flashAll(200, 2, 255, 0, 0); // 2xRed Fast
         Serial.println("❌ WiFi Disconnected!");
         return;
     }
 
     if (!mqttClient.isConnected()){
-        ledStripY.flash(500, 2, 255, 0, 0); // 2xRed
+        ledStripY.flashAll(500, 2, 255, 0, 0); // 2xRed
         Serial.println("❌ MQTT Disconnected!");
         mqttClient.reconnect();
         return;
