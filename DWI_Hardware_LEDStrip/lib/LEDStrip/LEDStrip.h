@@ -53,53 +53,56 @@ public:
         strip.show();
     }
 
-    void processMQTTMessage(const JsonDocument& doc) {       
-        String rangeStr = doc["range"];
-        int startIdx, endIdx;
-
-        sscanf(rangeStr.c_str(), "%d-%d", &startIdx, &endIdx);
-
-        if (startIdx < 0 || endIdx >= strip.numPixels() || startIdx > endIdx) return;
-        
-        uint8_t r = doc["color"]["r"];
-        uint8_t g = doc["color"]["g"];
-        uint8_t b = doc["color"]["b"];
-
-        uint8_t brightness = doc["brightness"].is<uint8_t>() ? doc["brightness"].as<uint8_t>() : 255;
-        if (brightness > 255) brightness = 255;
-        if (brightness < 0) brightness = 0;
-        
-        String status = doc["status"].as<String>();
-        
-        Serial.printf("Range: %d-%d, Color: (%d, %d, %d), Brightness: %d, Status: %s\n", startIdx, endIdx, r, g, b, brightness, status.c_str());
-
-        if (status == "on") {
-            uint8_t adj_r = (r * brightness) / 255;
-            uint8_t adj_g = (g * brightness) / 255;
-            uint8_t adj_b = (b * brightness) / 255;
-
-            setRangeColor(startIdx, endIdx, adj_r, adj_g, adj_b);
-        } 
-        else if (status == "off") {
-            setRangeColor(startIdx, endIdx, 0, 0, 0);
-        } 
-        else if (status == "flash") {
-            if (!doc["duration"].is<uint32_t>()) {
-                Serial.println("❌ Invalid duration for flash");
-                return;
-            }
-        
-            if (!doc["cycles"].is<uint8_t>()) {
-                Serial.println("❌ Invalid cycles for flash");
-                return;
-            }
-        
-            uint16_t duration = doc["duration"].as<uint32_t>();
-            uint8_t cycles = doc["cycles"].as<uint8_t>();
-        
-            flashRange(startIdx, endIdx, duration, cycles, r, g, b);
-        }            
+    void processMQTTMessage(const JsonDocument& doc) {
+        if (!doc["list"].is<JsonArrayConst>()) {
+            Serial.println("❌ 'list' is not an array or missing");
+            return;
+        }
+    
+        JsonArrayConst list = doc["list"].as<JsonArrayConst>();
+        for (JsonObjectConst config : list) {
+            String rangeStr = config["range"];
+            int startIdx, endIdx;
+            sscanf(rangeStr.c_str(), "%d-%d", &startIdx, &endIdx);
+    
+            if (startIdx < 0 || endIdx >= strip.numPixels() || startIdx > endIdx) return;
+    
+            uint8_t r = config["color"]["r"];
+            uint8_t g = config["color"]["g"];
+            uint8_t b = config["color"]["b"];
+    
+            uint8_t brightness = config["brightness"].is<uint8_t>() ? config["brightness"].as<uint8_t>() : 255;
+            if (brightness > 255) brightness = 255;
+    
+            String status = config["status"].as<String>();
+       
+            if (status == "on") {
+                uint8_t adj_r = (r * brightness) / 255;
+                uint8_t adj_g = (g * brightness) / 255;
+                uint8_t adj_b = (b * brightness) / 255;
+                setRangeColor(startIdx, endIdx, adj_r, adj_g, adj_b);
+            } 
+            else if (status == "off") {
+                setRangeColor(startIdx, endIdx, 0, 0, 0);
+            } 
+            else if (status == "flash") {
+                if (!config["duration"].is<uint32_t>()) {
+                    Serial.println("❌ Invalid duration for flash");
+                    return;
+                }
+    
+                if (!config["cycles"].is<uint8_t>()) {
+                    Serial.println("❌ Invalid cycles for flash");
+                    return;
+                }
+    
+                uint16_t duration = config["duration"].as<uint32_t>();
+                uint8_t cycles = config["cycles"].as<uint8_t>();
+                flashRange(startIdx, endIdx, duration, cycles, r, g, b);
+            }   
+        }         
     }
+    
   
 private:
     Adafruit_NeoPixel strip;
