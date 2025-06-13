@@ -15,7 +15,7 @@ const int MQTT_PORT = 8883;
 const char* MQTT_USERNAME = "dwi_map";
 const char* MQTT_PASSWORD = "wRYx&RK%l5vsflnN";
 
-const uint8_t id = 1;
+const uint8_t id = 7;
 
 bool lastObstacleState = false;
 
@@ -23,9 +23,9 @@ void messageCallback(char* topic, byte* payload, unsigned int length);
 
 WiFiManager wifiManager(SSID, PASSWORD);
 MQTTClient mqttClient(MQTT_SERVER, MQTT_PORT, MQTT_USERNAME, MQTT_PASSWORD, messageCallback);
-IR_KY032 obstacleSensor(11, 6); // outPin=11, enPin=6
+IR_KY032 obstacleSensor(2, 6); // outPin=2, enPin=6
 LEDCluster ledCluster(7, 9);   // numLEDs=7, pin=9
-SevenSegmentDisplay display(13, 12); // clkPin=13, dioPin=12
+SevenSegmentDisplay display(5, 4); // clkPin=3, dioPin=4
 
 void messageCallback(char* topic, byte* payload, unsigned int length) {
     Serial.print("📩 Received message on topic: ");
